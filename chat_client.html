@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .auth-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        input, select, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 8px 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .chat-container {
+            display: none;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background: white;
+        }
+        .message.own {
+            background: #e3f2fd;
+            margin-left: 20px;
+        }
+        .message-header {
+            font-weight: bold;
+            color: #555;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        .message-content {
+            margin: 4px 0;
+        }
+        .message-time {
+            font-size: 10px;
+            color: #888;
+        }
+        .system-message {
+            background: #fff3cd !important;
+            border-left: 4px solid #ffc107;
+            font-style: italic;
+        }
+        .send-form {
+            display: flex;
+            gap: 10px;
+        }
+        .send-form input {
+            flex: 1;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+        }
+        .users-list {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .users-list h4 {
+            margin: 0 0 10px 0;
+            color: #555;
+        }
+        .user-tag {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Application</h1>
+        
+        <div id="status"></div>
+        
+        <!-- Authentication Form -->
+        <div id="auth-container">
+            <h3>Login / Signup</h3>
+            <div class="auth-form">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="username" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="email" placeholder="Enter email (for signup)">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="password" placeholder="Enter password">
+                </div>
+                <div class="form-group" id="role-group" style="display: none;">
+                    <label>Role:</label>
+                    <select id="role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="signup()">Signup</button>
+                    <button onclick="login()">Login</button>
+                    <button onclick="toggleRoleSelection()" id="admin-toggle" style="background: #6c757d; font-size: 12px;">Show Admin Option</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div id="chat-container" class="chat-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Chat Room</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <span id="current-user" style="color: #666; font-size: 14px;"></span>
+                    <button onclick="logout()" style="background: #dc3545;">Logout</button>
+                </div>
+            </div>
+
+            <!-- Admin Controls -->
+            <div id="admin-controls" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #495057;">Admin Controls</h4>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: end;">
+                    <div class="form-group">
+                        <label>Create Room:</label>
+                        <input type="text" id="new-room-name" placeholder="Room name">
+                    </div>
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <input type="text" id="new-room-desc" placeholder="Room description">
+                    </div>
+                    <button onclick="createRoom()" style="background: #28a745;">Create Room</button>
+                    <button onclick="deleteRoom()" style="background: #dc3545;">Delete Current Room</button>
+                    <button onclick="loadRooms()" style="background: #17a2b8;">Refresh Rooms</button>
+                </div>
+            </div>
+
+            <!-- Room Selection -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Select Room:</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="room-select" onchange="updateRoomId()">
+                        <option value="1">Room 1 - General</option>
+                        <option value="2">Room 2 - Tech Talk</option>
+                        <option value="3">Room 3 - Random</option>
+                    </select>
+                    <input type="number" id="room-id" value="1" min="1" style="width: 80px;">
+                    <button onclick="connectToRoom()">Connect to Room</button>
+                    <button onclick="disconnect()" id="disconnect-btn" disabled>Disconnect</button>
+                </div>
+            </div>
+
+            <div id="users-list" class="users-list" style="display: none;">
+                <h4>Active Users (<span id="users-count">0</span>)</h4>
+                <div id="users"></div>
+            </div>
+
+            <div id="messages" class="messages"></div>
+            
+            <div class="send-form">
+                <input type="text" id="message-input" placeholder="Type your message..." disabled>
+                <button onclick="sendMessage()" id="send-btn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let token = null;
+        let currentUser = null;
+        let connected = false;
+
+        const API_BASE = 'http://localhost:8000';
+        const WS_BASE = 'ws://localhost:8000';
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        async function signup() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            if (!username || !email || !password) {
+                showStatus('Please fill in all fields for signup', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password, role })
+                });
+
+                if (response.ok) {
+                    showStatus('Signup successful! You can now login.', 'success');
+                } else {
+                    const error = await response.json();
+                    showStatus(`Signup failed: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Signup failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showStatus('Please enter username and password', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.access_token;
+                    currentUser = username;
+                    showStatus('Login successful!', 'success');
+                    
+                    // Hide auth form, show chat
+                    document.getElementById('auth-container').style.display = 'none';
+                    document.getElementById('chat-container').style.display = 'block';
+                    
+                    // Update user display
+                    document.getElementById('current-user').textContent = `Logged in as: ${username}`;
+                    
+                    // Check if user is admin and show admin controls
+                    checkUserRole();
+                    
+                    // Load available rooms
+                    loadRooms();
+                } else {
+                    const error = await response.json();
+                    showStatus(`Login failed: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Login failed: ${error.message}`, 'error');
+            }
+        }
+
+        function connectToRoom() {
+            if (!token) {
+                showStatus('Please login first', 'error');
+                return;
+            }
+
+            const roomId = document.getElementById('room-id').value;
+            if (!roomId) {
+                showStatus('Please enter a room ID', 'error');
+                return;
+            }
+
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket(`${WS_BASE}/ws/${roomId}?token=${token}`);
+
+            ws.onopen = function(event) {
+                connected = true;
+                showStatus(`Connected to room ${roomId}`, 'success');
+                document.getElementById('message-input').disabled = false;
+                document.getElementById('send-btn').disabled = false;
+                document.getElementById('disconnect-btn').disabled = false;
+                document.getElementById('users-list').style.display = 'block';
+                
+                // Clear previous messages
+                document.getElementById('messages').innerHTML = '';
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = function(event) {
+                connected = false;
+                showStatus('Disconnected from room', 'info');
+                document.getElementById('message-input').disabled = true;
+                document.getElementById('send-btn').disabled = true;
+                document.getElementById('disconnect-btn').disabled = true;
+                document.getElementById('users-list').style.display = 'none';
+            };
+
+            ws.onerror = function(error) {
+                showStatus('WebSocket error occurred', 'error');
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function handleMessage(data) {
+            const messagesDiv = document.getElementById('messages');
+            
+            if (data.type === 'message') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${data.username === currentUser ? 'own' : ''}`;
+                
+                const time = new Date(data.timestamp).toLocaleTimeString();
+                messageDiv.innerHTML = `
+                    <div class="message-header">${data.username}</div>
+                    <div class="message-content">${data.content}</div>
+                    <div class="message-time">${time}</div>
+                `;
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } else if (data.type === 'user_joined' || data.type === 'user_left') {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message system-message';
+                
+                const time = new Date(data.timestamp).toLocaleTimeString();
+                messageDiv.innerHTML = `
+                    <div class="message-content">${data.message}</div>
+                    <div class="message-time">${time}</div>
+                `;
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } else if (data.type === 'active_users') {
+                const usersDiv = document.getElementById('users');
+                const countSpan = document.getElementById('users-count');
+                
+                countSpan.textContent = data.count;
+                usersDiv.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const userTag = document.createElement('span');
+                    userTag.className = 'user-tag';
+                    userTag.textContent = user.username;
+                    usersDiv.appendChild(userTag);
+                });
+            }
+        }
+
+        function sendMessage() {
+            if (!connected || !ws) {
+                showStatus('Not connected to room', 'error');
+                return;
+            }
+
+            const messageInput = document.getElementById('message-input');
+            const content = messageInput.value.trim();
+            
+            if (!content) {
+                return;
+            }
+
+            ws.send(JSON.stringify({ content }));
+            messageInput.value = '';
+        }
+
+        // Admin Functions
+        async function checkUserRole() {
+            if (!token) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.role === 'admin') {
+                        document.getElementById('admin-controls').style.display = 'block';
+                        showStatus('Admin privileges enabled', 'success');
+                    }
+                } else {
+                    console.error('Failed to get user info');
+                }
+            } catch (error) {
+                console.error('Error checking user role:', error);
+            }
+        }
+
+        async function loadRooms() {
+            if (!token) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/rooms/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const rooms = await response.json();
+                    const roomSelect = document.getElementById('room-select');
+                    roomSelect.innerHTML = '';
+                    
+                    rooms.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.id;
+                        option.textContent = `Room ${room.id} - ${room.name}`;
+                        roomSelect.appendChild(option);
+                    });
+                    
+                    // Update room ID input
+                    if (rooms.length > 0) {
+                        document.getElementById('room-id').value = rooms[0].id;
+                    }
+                } else {
+                    showStatus('Failed to load rooms', 'error');
+                }
+            } catch (error) {
+                showStatus('Error loading rooms', 'error');
+            }
+        }
+
+        async function createRoom() {
+            if (!token) {
+                showStatus('Please login first', 'error');
+                return;
+            }
+            
+            const name = document.getElementById('new-room-name').value.trim();
+            const description = document.getElementById('new-room-desc').value.trim();
+            
+            if (!name) {
+                showStatus('Please enter a room name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/rooms/`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+                
+                if (response.ok) {
+                    const room = await response.json();
+                    showStatus(`Room "${room.name}" created successfully!`, 'success');
+                    document.getElementById('new-room-name').value = '';
+                    document.getElementById('new-room-desc').value = '';
+                    loadRooms(); // Refresh room list
+                } else {
+                    const error = await response.json();
+                    showStatus(`Failed to create room: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error creating room: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteRoom() {
+            if (!token) {
+                showStatus('Please login first', 'error');
+                return;
+            }
+            
+            const roomId = document.getElementById('room-id').value;
+            
+            if (!roomId) {
+                showStatus('Please select a room to delete', 'error');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete room ${roomId}? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/rooms/${roomId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    showStatus(`Room ${roomId} deleted successfully!`, 'success');
+                    
+                    // Disconnect if connected to this room
+                    if (connected) {
+                        disconnect();
+                    }
+                    
+                    loadRooms(); // Refresh room list
+                } else {
+                    const error = await response.json();
+                    showStatus(`Failed to delete room: ${error.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error deleting room: ${error.message}`, 'error');
+            }
+        }
+
+        function updateRoomId() {
+            const roomSelect = document.getElementById('room-select');
+            const roomId = roomSelect.value;
+            document.getElementById('room-id').value = roomId;
+        }
+
+        function logout() {
+            // Disconnect from WebSocket if connected
+            if (connected && ws) {
+                ws.close();
+            }
+            
+            // Clear user data
+            token = null;
+            currentUser = null;
+            connected = false;
+            
+            // Reset UI
+            document.getElementById('auth-container').style.display = 'block';
+            document.getElementById('chat-container').style.display = 'none';
+            document.getElementById('admin-controls').style.display = 'none';
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('users-list').style.display = 'none';
+            
+            // Clear form fields
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('email').value = '';
+            
+            showStatus('Logged out successfully', 'info');
+        }
+
+        function toggleRoleSelection() {
+            const roleGroup = document.getElementById('role-group');
+            const toggleBtn = document.getElementById('admin-toggle');
+            
+            if (roleGroup.style.display === 'none') {
+                roleGroup.style.display = 'flex';
+                toggleBtn.textContent = 'Hide Admin Option';
+                toggleBtn.style.background = '#dc3545';
+            } else {
+                roleGroup.style.display = 'none';
+                toggleBtn.textContent = 'Show Admin Option';
+                toggleBtn.style.background = '#6c757d';
+                // Reset to user role when hidden
+                document.getElementById('role').value = 'user';
+            }
+        }
+
+        // Send message on Enter key
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Focus on message input when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('username').focus();
+        });
+    </script>
+</body>
+</html>

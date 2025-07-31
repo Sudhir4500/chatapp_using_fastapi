@@ -1,0 +1,13 @@
+# Don't upload these files
+__pycache__/
+*.pyc
+venv/
+.env
+chat_app.db
+
+# VS Code stuff
+.vscode/
+
+# Random files
+*.log
+.DS_Store
