@@ -13,8 +13,7 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:password@localhost:5432/chatapp"
 )
 
-# For development, using SQLite for easier setup
-# DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chat_app.db")
+
 
 engine = create_engine(
     DATABASE_URL,
