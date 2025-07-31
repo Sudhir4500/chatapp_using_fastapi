@@ -35,16 +35,32 @@ pip install -r requirements.txt
 
 ### 3. Database Configuration
 
-Create a `.env` file from the example:
+**This application supports both SQLite and PostgreSQL databases:**
 
+#### Option A: SQLite (Development - Default)
+- ✅ Ready to use immediately
+- ✅ No additional setup required
+- Uses: `sqlite:///./chat_app.db`
+
+#### Option B: PostgreSQL (Production Ready)
+- ✅ Full PostgreSQL ORM integration with SQLAlchemy
+- ✅ psycopg2-binary driver included
+- ✅ All models designed for PostgreSQL relationships
+
+To use PostgreSQL:
+1. Install PostgreSQL on your system
+2. Create a database: `createdb chatapp`
+3. Update `.env` file:
 ```bash
-cp .env.example .env
+DATABASE_URL=postgresql://username:password@localhost:5432/chatapp
 ```
+4. Run setup: `python setup_postgres.py`
 
-Edit the `.env` file with your database configuration:
-
-- For PostgreSQL: Update the `DATABASE_URL` with your credentials
-- For SQLite (development): Uncomment the SQLite URL and comment the PostgreSQL URL
+**Database Models (PostgreSQL Compatible):**
+- **User**: Stores user credentials and roles (admin/user)
+- **ChatRoom**: Chat room metadata with relationships
+- **Message**: Messages linked to users and rooms with timestamps
+- **Relationships**: Proper one-to-many relationships between models
 
 ### 4. Database Setup
 
